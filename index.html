@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>관리자 OTP 번호 확인</title>
+    <!-- Firebase Web SDK v9 Compat -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-900 text-white min-h-screen flex items-center justify-center p-4">
+
+    <div class="bg-slate-800 p-8 rounded-2xl shadow-2xl max-w-sm w-full text-center border border-slate-700">
+        <h1 class="text-xl font-bold text-slate-300 mb-2">실시간 관리자 OTP</h1>
+        <p class="text-xs text-slate-400 mb-6">GitHub Actions에 의해 5분마다 자동으로 변경됩니다.</p>
+        
+        <div class="bg-slate-950 p-6 rounded-xl border border-slate-800 my-4">
+            <span id="otp-display" class="text-4xl font-extrabold tracking-widest text-sky-400 font-mono">로딩 중...</span>
+        </div>
+
+        <div id="status-text" class="text-xs text-slate-500 mt-4">파이어베이스 연결 중...</div>
+    </div>
+
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyA9CfIdZ0DNkvUdOk3-GlMlHV_FbAFNnGk",
+            authDomain: "hasi-game.firebaseapp.com",
+            databaseURL: "https://hasi-game-default-rtdb.asia-southeast1.firebasedatabase.app",
+            projectId: "hasi-game",
+            storageBucket: "hasi-game.firebasestorage.app",
+            messagingSenderId: "48274416774",
+            appId: "1:48274416774:web:c15811462fc618ebdd9d07",
+            measurementId: "G-FT9MYSD4GW"
+        };
+
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+
+        // Firestore 실시간 감지 (current_otp 문서가 바뀌면 화면 자동 업데이트)
+        db.collection("system").doc("current_otp").onSnapshot((doc) => {
+            if (doc.exists) {
+                const data = doc.data();
+                document.getElementById("otp-display").innerText = data.code;
+                
+                if (data.updatedAt) {
+                    const time = data.updatedAt.toDate().toLocaleTimeString();
+                    document.getElementById("status-text").innerText = `마지막 갱신 시각: ${time}`;
+                }
+            } else {
+                document.getElementById("otp-display").innerText = "--- ---";
+                document.getElementById("status-text").innerText = "OTP 번호가 아직 생성되지 않았습니다.";
+            }
+        }, (error) => {
+            console.error("Firestore 오류:", error);
+            document.getElementById("status-text").innerText = "데이터를 불러오지 못했습니다.";
+        });
+    </script>
+</body>
+</html>
