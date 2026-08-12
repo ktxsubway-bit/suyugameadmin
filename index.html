@@ -4,9 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>관리자 OTP 번호 확인</title>
-    <!-- Firebase Web SDK v9 Compat -->
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-slate-900 text-white min-h-screen flex items-center justify-center p-4">
@@ -19,42 +16,40 @@
             <span id="otp-display" class="text-4xl font-extrabold tracking-widest text-sky-400 font-mono">로딩 중...</span>
         </div>
 
-        <div id="status-text" class="text-xs text-slate-500 mt-4">파이어베이스 연결 중...</div>
+        <div id="status-text" class="text-xs text-slate-500 mt-4">Deno 서버 연결 중...</div>
     </div>
 
     <script>
-        const firebaseConfig = {
-            apiKey: "AIzaSyA9CfIdZ0DNkvUdOk3-GlMlHV_FbAFNnGk",
-            authDomain: "hasi-game.firebaseapp.com",
-            databaseURL: "https://hasi-game-default-rtdb.asia-southeast1.firebasedatabase.app",
-            projectId: "hasi-game",
-            storageBucket: "hasi-game.firebasestorage.app",
-            messagingSenderId: "48274416774",
-            appId: "1:48274416774:web:c15811462fc618ebdd9d07",
-            measurementId: "G-FT9MYSD4GW"
-        };
+        const BACKEND_URL = "https://mad-cheetah-6907.ktxsubway.deno.net";
 
-        firebase.initializeApp(firebaseConfig);
-        const db = firebase.firestore();
+        async function fetchOtp() {
+            try {
+                const res = await fetch(BACKEND_URL, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ action: "getOtp" })
+                });
 
-        // Firestore 실시간 감지 (current_otp 문서가 바뀌면 화면 자동 업데이트)
-        db.collection("system").doc("current_otp").onSnapshot((doc) => {
-            if (doc.exists) {
-                const data = doc.data();
-                document.getElementById("otp-display").innerText = data.code;
-                
-                if (data.updatedAt) {
-                    const time = data.updatedAt.toDate().toLocaleTimeString();
-                    document.getElementById("status-text").innerText = `마지막 갱신 시각: ${time}`;
+                const data = await res.json();
+
+                if (data.success && data.otp) {
+                    document.getElementById("otp-display").innerText = data.otp;
+                    const time = new Date().toLocaleTimeString();
+                    document.getElementById("status-text").innerText = `마지막 동기화 시각: ${time}`;
+                } else {
+                    document.getElementById("status-text").innerText = "OTP 불러오기 실패: " + (data.message || "알 수 없는 오류");
                 }
-            } else {
-                document.getElementById("otp-display").innerText = "--- ---";
-                document.getElementById("status-text").innerText = "OTP 번호가 아직 생성되지 않았습니다.";
+            } catch (error) {
+                console.error("Deno 서버 통신 오류:", error);
+                document.getElementById("status-text").innerText = "서버 연결 실패 (Deno 통신 오류)";
             }
-        }, (error) => {
-            console.error("Firestore 오류:", error);
-            document.getElementById("status-text").innerText = "데이터를 불러오지 못했습니다.";
-        });
+        }
+
+        // 1. 페이지 로드 시 즉시 OTP 불러오기
+        fetchOtp();
+
+        // 2. 10초마다 자동으로 Deno 백엔드에서 최신 OTP 동기화
+        setInterval(fetchOtp, 10000);
     </script>
 </body>
 </html>
